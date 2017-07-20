@@ -4,6 +4,11 @@ namespace Detain\MyAdminHotjar;
 
 use Symfony\Component\EventDispatcher\GenericEvent;
 
+/**
+ * Class Plugin
+ *
+ * @package Detain\MyAdminHotjar
+ */
 class Plugin {
 
 	public static $name = 'Hotjar Plugin';
@@ -11,10 +16,15 @@ class Plugin {
 	public static $help = '';
 	public static $type = 'plugin';
 
-
+	/**
+	 * Plugin constructor.
+	 */
 	public function __construct() {
 	}
 
+	/**
+	 * @return array
+	 */
 	public static function getHooks() {
 		return [
 			//'system.settings' => [__CLASS__, 'getSettings'],
@@ -22,6 +32,9 @@ class Plugin {
 		];
 	}
 
+	/**
+	 * @param \Symfony\Component\EventDispatcher\GenericEvent $event
+	 */
 	public static function getMenu(GenericEvent $event) {
 		$menu = $event->getSubject();
 		if ($GLOBALS['tf']->ima == 'admin') {
@@ -31,6 +44,9 @@ class Plugin {
 		}
 	}
 
+	/**
+	 * @param \Symfony\Component\EventDispatcher\GenericEvent $event
+	 */
 	public static function getRequirements(GenericEvent $event) {
 		$loader = $event->getSubject();
 		$loader->add_requirement('class.Hotjar', '/../vendor/detain/myadmin-hotjar-analytics/src/Hotjar.php');
@@ -39,6 +55,9 @@ class Plugin {
 		$loader->add_requirement('get_abuse_licenses', '/../vendor/detain/myadmin-hotjar-analytics/src/abuse.inc.php');
 	}
 
+	/**
+	 * @param \Symfony\Component\EventDispatcher\GenericEvent $event
+	 */
 	public static function getSettings(GenericEvent $event) {
 		$settings = $event->getSubject();
 		$settings->add_text_setting('General', 'Hotjar', 'abuse_imap_user', 'Hotjar IMAP User:', 'Hotjar IMAP Username', ABUSE_IMAP_USER);
