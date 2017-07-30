@@ -12,7 +12,7 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 class Plugin {
 
 	public static $name = 'Hotjar Plugin';
-	public static $description = 'Allows handling of Hotjar emails and honeypots';
+	public static $description = 'Allows handling of Hotjar based Analytics';
 	public static $help = '';
 	public static $type = 'plugin';
 
