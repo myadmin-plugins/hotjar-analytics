@@ -34,7 +34,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Detain\\MyAdminHotjar\\": "src\/"
+            "Detain\\MyAdminHotjar\\": "src/"
         }
     }
 }
