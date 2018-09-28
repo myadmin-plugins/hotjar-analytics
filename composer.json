@@ -1,5 +1,5 @@
 {
-	"name": "detain/myadmin-hotjar-analytics",
+	"name": "detain/hotjar-analytics",
 	"type": "myadmin-plugin",
 	"description": "Hotjar handling plugin for MyAdmin",
 	"keywords": [

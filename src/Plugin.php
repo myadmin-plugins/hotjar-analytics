@@ -54,10 +54,10 @@ class Plugin
 	public static function getRequirements(GenericEvent $event)
 	{
 		$loader = $event->getSubject();
-		$loader->add_requirement('class.Hotjar', '/../vendor/detain/myadmin-hotjar-analytics/src/Hotjar.php');
-		$loader->add_requirement('deactivate_kcare', '/../vendor/detain/myadmin-hotjar-analytics/src/abuse.inc.php');
-		$loader->add_requirement('deactivate_abuse', '/../vendor/detain/myadmin-hotjar-analytics/src/abuse.inc.php');
-		$loader->add_requirement('get_abuse_licenses', '/../vendor/detain/myadmin-hotjar-analytics/src/abuse.inc.php');
+		$loader->add_requirement('class.Hotjar', '/../vendor/detain/hotjar-analytics/src/Hotjar.php');
+		$loader->add_requirement('deactivate_kcare', '/../vendor/detain/hotjar-analytics/src/abuse.inc.php');
+		$loader->add_requirement('deactivate_abuse', '/../vendor/detain/hotjar-analytics/src/abuse.inc.php');
+		$loader->add_requirement('get_abuse_licenses', '/../vendor/detain/hotjar-analytics/src/abuse.inc.php');
 	}
 
 	/**
