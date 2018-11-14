@@ -43,7 +43,7 @@ class Plugin
 		if ($GLOBALS['tf']->ima == 'admin') {
 			function_requirements('has_acl');
 			if (has_acl('client_billing')) {
-				$menu->add_link('admin', 'choice=none.abuse_admin', '/lib/webhostinghub-glyphs-icons/icons/development-16/Black/icon-spam.png', 'Hotjar');
+				$menu->add_link('admin', 'choice=none.abuse_admin', '/lib/webhostinghub-glyphs-icons/icons/development-16/Black/icon-spam.png', __('Hotjar'));
 			}
 		}
 	}
@@ -53,7 +53,10 @@ class Plugin
 	 */
 	public static function getRequirements(GenericEvent $event)
 	{
-		$loader = $event->getSubject();
+        /**
+         * @var \MyAdmin\Plugins\Loader $this->loader
+         */
+        $loader = $event->getSubject();
 		$loader->add_requirement('class.Hotjar', '/../vendor/detain/myadmin-hotjar-analytics/src/Hotjar.php');
 		$loader->add_requirement('deactivate_kcare', '/../vendor/detain/myadmin-hotjar-analytics/src/abuse.inc.php');
 		$loader->add_requirement('deactivate_abuse', '/../vendor/detain/myadmin-hotjar-analytics/src/abuse.inc.php');
@@ -63,10 +66,13 @@ class Plugin
 	/**
 	 * @param \Symfony\Component\EventDispatcher\GenericEvent $event
 	 */
-	public static function getSettings(GenericEvent $event)
-	{
-		$settings = $event->getSubject();
-		$settings->add_text_setting('General', 'Hotjar', 'abuse_imap_user', 'Hotjar IMAP User:', 'Hotjar IMAP Username', ABUSE_IMAP_USER);
-		$settings->add_text_setting('General', 'Hotjar', 'abuse_imap_pass', 'Hotjar IMAP Pass:', 'Hotjar IMAP Password', ABUSE_IMAP_PASS);
+    public static function getSettings(GenericEvent $event)
+    {
+        /**
+         * @var \MyAdmin\Settings $settings
+         **/
+        $settings = $event->getSubject();
+		$settings->add_text_setting(__('General'), __('Hotjar'), 'abuse_imap_user', __('Hotjar IMAP User'), __('Hotjar IMAP Username'), ABUSE_IMAP_USER);
+		$settings->add_text_setting(__('General'), __('Hotjar'), 'abuse_imap_pass', __('Hotjar IMAP Pass'), __('Hotjar IMAP Password'), ABUSE_IMAP_PASS);
 	}
 }
