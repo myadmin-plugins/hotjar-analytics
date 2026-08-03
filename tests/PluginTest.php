@@ -118,21 +118,51 @@ class PluginTest extends TestCase
     }
 
     /**
-     * Tests that getHooks returns an array.
+     * Tests that every hook registration in getHooks() names a real handler.
+     *
+     * Every registration in this plugin's getHooks() is currently commented out,
+     * so nothing it declares reaches the event dispatcher. Asserting that the
+     * returned array is empty would only bless that state; what is worth
+     * asserting is that the registrations written in the method body - live or
+     * commented - still name public static handlers on this class, so a rename
+     * fails here instead of silently breaking whoever re-enables the lines.
      */
-    public function testGetHooksReturnsArray(): void
+    public function testGetHooksRegistrationsNameLiveHandlers(): void
     {
-        $hooks = Plugin::getHooks();
-        $this->assertIsArray($hooks);
-    }
+        $method = $this->reflection->getMethod('getHooks');
+        $lines = file((string) $method->getFileName());
+        $this->assertNotFalse($lines, 'Plugin source should be readable');
+        $body = implode('', array_slice(
+            $lines,
+            $method->getStartLine() - 1,
+            $method->getEndLine() - $method->getStartLine() + 1
+        ));
 
-    /**
-     * Tests that getHooks returns an empty array (all hooks are commented out).
-     */
-    public function testGetHooksReturnsEmptyArray(): void
-    {
-        $hooks = Plugin::getHooks();
-        $this->assertEmpty($hooks);
+        preg_match_all(
+            "/'([^']+)'\s*=>\s*\[\s*(?:__CLASS__|self::class|static::class|[A-Za-z_\\\\]+::class)\s*,\s*'([^']+)'\s*\]/",
+            $body,
+            $registrations,
+            PREG_SET_ORDER
+        );
+
+        $this->assertNotEmpty(
+            $registrations,
+            'getHooks() should declare at least one "event.name" => [__CLASS__, "method"] registration'
+        );
+
+        foreach ($registrations as $registration) {
+            [, $eventName, $handlerName] = $registration;
+
+            $this->assertNotSame('', trim($eventName), 'Hook event names must not be empty');
+            $this->assertTrue(
+                $this->reflection->hasMethod($handlerName),
+                "getHooks() registers '{$eventName}' => {$handlerName}() but that method does not exist on ".Plugin::class
+            );
+
+            $handler = $this->reflection->getMethod($handlerName);
+            $this->assertTrue($handler->isPublic(), "Handler {$handlerName}() for '{$eventName}' must be public");
+            $this->assertTrue($handler->isStatic(), "Handler {$handlerName}() for '{$eventName}' must be static");
+        }
     }
 
     /**
@@ -411,16 +441,42 @@ class PluginTest extends TestCase
     }
 
     /**
-     * Tests that the getHooks return value uses class reference format when hooks are defined.
+     * Tests that every hook getHooks() returns is actually dispatchable.
+     *
+     * The host copies each entry straight into a Symfony EventDispatcher
+     * listener, so an entry only does something if its event name is a non-empty
+     * string and its handler resolves to a public static method that PHP will
+     * accept as a callable. The closing assertion proves the loop covered every
+     * entry, so this test always asserts something even while the plugin's
+     * registrations are commented out.
      */
-    public function testGetHooksReturnFormat(): void
+    public function testGetHooksAreDispatchableCallables(): void
     {
         $hooks = Plugin::getHooks();
+        $validated = [];
+
         foreach ($hooks as $eventName => $handler) {
-            $this->assertIsString($eventName, 'Hook event name should be a string');
-            $this->assertIsArray($handler, 'Hook handler should be an array');
-            $this->assertCount(2, $handler, 'Hook handler should have class and method');
+            $this->assertIsString($eventName, 'Hook event names must be strings');
+            $this->assertNotSame('', trim($eventName), 'Hook event names must not be empty');
+
+            $this->assertIsArray($handler, "Handler for '{$eventName}' must be a [class, method] pair");
+            $this->assertArrayHasKey(0, $handler, "Handler for '{$eventName}' is missing its class");
+            $this->assertArrayHasKey(1, $handler, "Handler for '{$eventName}' is missing its method");
+            $this->assertTrue(class_exists($handler[0]), "Handler class {$handler[0]} for '{$eventName}' does not exist");
+            $this->assertTrue(
+                method_exists($handler[0], $handler[1]),
+                "Handler {$handler[0]}::{$handler[1]}() for '{$eventName}' does not exist"
+            );
+
+            $method = new \ReflectionMethod($handler[0], $handler[1]);
+            $this->assertTrue($method->isPublic(), "Handler {$handler[1]}() for '{$eventName}' must be public");
+            $this->assertTrue($method->isStatic(), "Handler {$handler[1]}() for '{$eventName}' must be static");
+            $this->assertTrue(is_callable($handler), "Handler for '{$eventName}' must be callable as given");
+
+            $validated[] = $eventName;
         }
+
+        $this->assertSame(array_keys($hooks), $validated, 'Every hook returned by getHooks() must be validated');
     }
 
     /**
