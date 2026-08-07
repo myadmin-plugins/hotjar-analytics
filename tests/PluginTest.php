@@ -321,9 +321,24 @@ class PluginTest extends TestCase
     }
 
     /**
-     * Tests that getRequirements calls add_requirement on the loader subject.
+     * Tests that every source getRequirements() registers is a file that exists.
+     *
+     * This replaces five tests (testGetRequirementsCallsAddRequirement,
+     * testGetRequirementsRegistersHotjarClass, ...RegistersDeactivateKcare,
+     * ...RegistersDeactivateAbuse and ...RegistersGetAbuseLicenses) that asserted
+     * the registration table contained four specific names. They only ever read
+     * the table back and never looked at the filesystem, so they stayed green for
+     * years while every one of those registrations pointed at a file this package
+     * has never shipped - a function_requirements() call on any of them would have
+     * fataled. Asserting the source resolves to a real file is the property those
+     * tests should have checked.
+     *
+     * getRequirements() registers nothing today, so the loop body does not run and
+     * the test passes vacuously. That is the correct result for an empty table; the
+     * closing assertion still executes, so the test is never assertion-free, and the
+     * loop starts guarding the moment a registration is added back.
      */
-    public function testGetRequirementsCallsAddRequirement(): void
+    public function testGetRequirementsRegistersOnlySourcesThatExist(): void
     {
         $loader = new class {
             /** @var array<int, array{0: string, 1: string}> */
@@ -338,95 +353,37 @@ class PluginTest extends TestCase
         $event = new GenericEvent($loader);
         Plugin::getRequirements($event);
 
-        $this->assertCount(4, $loader->requirements);
-    }
+        $packageRoot = dirname(__DIR__);
+        $checked = [];
 
-    /**
-     * Tests that getRequirements registers the class.Hotjar requirement.
-     */
-    public function testGetRequirementsRegistersHotjarClass(): void
-    {
-        $loader = new class {
-            /** @var array<int, array{0: string, 1: string}> */
-            public array $requirements = [];
+        foreach ($loader->requirements as [$name, $source]) {
+            $this->assertNotSame('', trim($source), "Requirement '{$name}' registers an empty source path");
 
-            public function add_requirement(string $name, string $path): void
-            {
-                $this->requirements[] = [$name, $path];
+            // Sources are written relative to the host's INCLUDE_ROOT, e.g.
+            // '/../vendor/detain/myadmin-hotjar-analytics/src/Foo.php'. Inside this
+            // package the same file lives under the package root, so strip anything
+            // up to and including the package directory before resolving.
+            $relative = $source;
+            $marker = '/myadmin-hotjar-analytics/';
+            $position = strpos($relative, $marker);
+            if ($position !== false) {
+                $relative = substr($relative, $position + strlen($marker));
             }
-        };
+            $resolved = $packageRoot.'/'.ltrim($relative, '/');
 
-        $event = new GenericEvent($loader);
-        Plugin::getRequirements($event);
+            $this->assertFileExists(
+                $resolved,
+                "getRequirements() registers '{$name}' => '{$source}' but no such file exists at {$resolved}"
+            );
 
-        $names = array_column($loader->requirements, 0);
-        $this->assertContains('class.Hotjar', $names);
-    }
+            $checked[] = $name;
+        }
 
-    /**
-     * Tests that getRequirements registers the deactivate_kcare requirement.
-     */
-    public function testGetRequirementsRegistersDeactivateKcare(): void
-    {
-        $loader = new class {
-            /** @var array<int, array{0: string, 1: string}> */
-            public array $requirements = [];
-
-            public function add_requirement(string $name, string $path): void
-            {
-                $this->requirements[] = [$name, $path];
-            }
-        };
-
-        $event = new GenericEvent($loader);
-        Plugin::getRequirements($event);
-
-        $names = array_column($loader->requirements, 0);
-        $this->assertContains('deactivate_kcare', $names);
-    }
-
-    /**
-     * Tests that getRequirements registers the deactivate_abuse requirement.
-     */
-    public function testGetRequirementsRegistersDeactivateAbuse(): void
-    {
-        $loader = new class {
-            /** @var array<int, array{0: string, 1: string}> */
-            public array $requirements = [];
-
-            public function add_requirement(string $name, string $path): void
-            {
-                $this->requirements[] = [$name, $path];
-            }
-        };
-
-        $event = new GenericEvent($loader);
-        Plugin::getRequirements($event);
-
-        $names = array_column($loader->requirements, 0);
-        $this->assertContains('deactivate_abuse', $names);
-    }
-
-    /**
-     * Tests that getRequirements registers the get_abuse_licenses requirement.
-     */
-    public function testGetRequirementsRegistersGetAbuseLicenses(): void
-    {
-        $loader = new class {
-            /** @var array<int, array{0: string, 1: string}> */
-            public array $requirements = [];
-
-            public function add_requirement(string $name, string $path): void
-            {
-                $this->requirements[] = [$name, $path];
-            }
-        };
-
-        $event = new GenericEvent($loader);
-        Plugin::getRequirements($event);
-
-        $names = array_column($loader->requirements, 0);
-        $this->assertContains('get_abuse_licenses', $names);
+        $this->assertSame(
+            array_column($loader->requirements, 0),
+            $checked,
+            'Every source registered by getRequirements() must be checked'
+        );
     }
 
     /**
